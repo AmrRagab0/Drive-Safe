@@ -1,6 +1,6 @@
 # Drive-Safe
 <p align="center">
-  <img src="screenshots/banner.jpg" alt="App Logo" width="150" height="150">
+  <img src="screenshots/banner.jpg" alt="App Logo" width="500" height="150">
 </p>
 A flutter app that protects drivers from drowsiness by monitoring their eyes and sounding an alarm if the eyes are closed.
 ## Table of Contents  
@@ -13,9 +13,10 @@ A flutter app that protects drivers from drowsiness by monitoring their eyes and
 - Fast feedback : The alarm starts after only one second of Sleepiness/Drowsiness detection  
 - Lightweight app.  
 ## Screenshots  
+<p align="center">
 <img src="screenshots/1.PNG" width="300" alt="Driver Awake"/>  
 <img src="screenshots/3.png" width="300" alt="Driver asleep. Sound Alarm !"/>    
-
+</p>
 ## Installation
 Google Drive Link (Apk file):
 https://drive.google.com/file/d/12RtKkiRLeJGLI2CABbtr_F_2Mz2gHnmv/view?usp=drive_link

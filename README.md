@@ -15,7 +15,10 @@ A flutter app that protects drivers from drowsiness by monitoring their eyes and
 - High accuracy detecting the state of your eyes  
 - Fast feedback : The alarm starts after only one second of Sleepiness/Drowsiness detection  
 - Lightweight app.
-  
+
+## Video Demo
+[Watch the Demo Video](screenshots/Testing the app.mp4)
+
 ## Screenshots  
 <p align="center">
 <img src="screenshots/1.PNG" width="300" alt="Driver Awake"/>  

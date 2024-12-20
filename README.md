@@ -7,7 +7,7 @@ A flutter app that protects drivers from drowsiness by monitoring their eyes and
 
 ## Table of Contents  
 1. [Features](#features)  
-2. [Screenshots](#screenshots)  
+2. [Video Demo & Screenshots](#screenshots)  
 3. [Installation](#installation)  
 4. [Technologies Used](#technologies-used)
 
@@ -17,7 +17,7 @@ A flutter app that protects drivers from drowsiness by monitoring their eyes and
 - Lightweight app.
 
 ## Video Demo
-[Watch the Demo Video](screenshots/Testing the app.mp4)
+[![Demo]](https://drive.google.com/file/d/14RNDqBvLAXhur4xO-fht_27zqvijICAe/view?usp=sharing)
 
 ## Screenshots  
 <p align="center">

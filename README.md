@@ -1,7 +1,7 @@
 # Drive-Safe
 
 <p align="center">
-  <img src="screenshots/banner.jpg" alt="App Logo" width="500" height="500">
+  <img src="[screenshots/banner%201024.jpg]" alt="App Logo" width="500" height="500">
 </p>
 A flutter app that protects drivers from drowsiness by monitoring their eyes and sounding an alarm if the eyes are closed.
 

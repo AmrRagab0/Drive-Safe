@@ -17,7 +17,7 @@ A flutter app that protects drivers from drowsiness by monitoring their eyes and
 - Lightweight app.
 
 ## Video Demo
-[![Demo](https://drive.google.com/file/d/13uBbtg7fR7PQXIUBsMEye2gGxnR7--ii/view?usp=sharing)](https://drive.google.com/file/d/14RNDqBvLAXhur4xO-fht_27zqvijICAe/view?usp=sharing)
+[![Demo](https://github.com/AmrRagab0/Drive-Safe/blob/main/screenshots/play.png)](https://drive.google.com/file/d/14RNDqBvLAXhur4xO-fht_27zqvijICAe/view?usp=sharing)
 
 ## Screenshots  
 <p align="center">

@@ -1,0 +1,8 @@
+# Includes everything from requirements.txt plus RPi-specific packages
+mediapipe>=0.10.9
+opencv-python-headless>=4.8
+numpy>=1.24
+pygame>=2.5
+pyttsx3>=2.90
+picamera2>=0.3
+RPi.GPIO>=0.7

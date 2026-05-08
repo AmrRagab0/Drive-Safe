@@ -1,8 +1,10 @@
-# Includes everything from requirements.txt plus RPi-specific packages
-mediapipe>=0.10.9
-opencv-python-headless>=4.8
-numpy>=1.24
+# Pi 5 + Pi OS Trixie working set, validated 2026-05-09.
+# See rpi/SETUP.md for the full setup recipe (apt deps, uv-managed Python 3.11, libcamerify).
+
+mediapipe==0.10.18
+opencv-contrib-python==4.11.0.86  # 4.13 breaks the libcamerify V4L2 buffer; do not bump.
+numpy>=2.0
 pygame>=2.5
 pyttsx3>=2.90
-picamera2>=0.3
-RPi.GPIO>=0.7
+picamera2>=0.3                    # Installed but unused on the libcamerify path.
+RPi.GPIO>=0.7                     # Imports OK; runtime fails on Pi 5 (RP1 chip). IRLEDs handle this gracefully.

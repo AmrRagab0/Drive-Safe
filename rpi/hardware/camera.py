@@ -24,12 +24,23 @@ class Camera:
             self._init_opencv(source)
 
     def _init_opencv(self, source):
+        import time
         self.cap = cv2.VideoCapture(source)
         if not self.cap.isOpened():
             raise RuntimeError(f"Failed to open camera source: {source}")
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_WIDTH)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT)
         self.cap.set(cv2.CAP_PROP_FPS, CAMERA_FPS)
+
+        # libcamerify warmup: first several reads return False before frames flow.
+        time.sleep(0.5)
+        for _ in range(15):
+            ok, _ = self.cap.read()
+            if ok:
+                break
+            time.sleep(0.2)
+        else:
+            raise RuntimeError("Camera opened but never delivered a frame")
 
     def _init_picamera2(self):
         from picamera2 import Picamera2
@@ -46,9 +57,13 @@ class Camera:
         if self.picam2 is not None:
             frame = self.picam2.capture_array()
             return True, frame
-        else:
-            ret, frame = self.cap.read()
-            return ret, frame
+        ret, frame = self.cap.read()
+        # libcamerify delivers RGB888 as a flat (1, H*W*3) buffer — reshape + swap to BGR.
+        if (ret and frame is not None and frame.ndim == 2
+                and frame.size == CAMERA_WIDTH * CAMERA_HEIGHT * 3):
+            frame = frame.reshape(CAMERA_HEIGHT, CAMERA_WIDTH, 3)
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+        return ret, frame
 
     def release(self):
         if self.cap is not None:

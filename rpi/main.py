@@ -246,6 +246,9 @@ def main():
                 cv2.imshow("Drive Safe", frame)
                 if cv2.waitKey(1) & 0xFF == ord("q"):
                     break
+            elif frame_count % 15 == 0:
+                print(f"[{state.name:<8}] EAR={ear:.3f} PERCLOS={perclos:.3f} "
+                      f"MAR={mar:.3f} pitch={pitch:+.1f} score={score:.2f} fps={fps:.1f}")
 
     finally:
         print("\n[Shutdown] Cleaning up...")

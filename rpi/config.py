@@ -16,6 +16,19 @@ YAWN_MIN_DURATION = 2.0  # seconds
 YAWN_WINDOW = 300  # 5 minutes in seconds
 YAWN_COUNT_THRESHOLD = 3
 
+# --- Eye / Yawn Signal Source ---
+# "blendshape" uses MediaPipe's learned eyeBlinkLeft/Right (ML Kit equivalent).
+# "ear" uses the geometric Eye Aspect Ratio (the prototype's original signal).
+EYE_CLOSURE_SIGNAL = "blendshape"
+# "blendshape" uses MediaPipe's jawOpen score. "mar" uses Mouth Aspect Ratio.
+YAWN_SIGNAL = "blendshape"
+
+# Blendshape thresholds — eyeBlink ~0.0 when open, ~1.0 when closed.
+# 0.5 corresponds to ML Kit's "eyeOpenProbability < 0.5" rule that worked well
+# in the Flutter app. Calibration may adjust per-driver.
+BLENDSHAPE_EYE_CLOSED_THRESHOLD = 0.5
+BLENDSHAPE_JAW_OPEN_THRESHOLD = 0.4
+
 # --- Head Pose Thresholds ---
 HEAD_NOD_PITCH_DROP = 15  # degrees below neutral
 HEAD_YAW_THRESHOLD = 30  # degrees off-center

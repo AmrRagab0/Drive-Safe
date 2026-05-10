@@ -10,6 +10,8 @@ from config import (
     HEAD_NOD_PITCH_DROP,
     HEAD_YAW_THRESHOLD,
     HEAD_POSE_DURATION,
+    BLENDSHAPE_EYE_CLOSED_THRESHOLD,
+    BLENDSHAPE_JAW_OPEN_THRESHOLD,
 )
 
 
@@ -33,6 +35,8 @@ class DrowsinessDetector:
         self._yawn_start = None
         self._yawning = False
         self.mar_threshold = 0.6  # overridden by calibration
+        self.blendshape_eye_closed_threshold = BLENDSHAPE_EYE_CLOSED_THRESHOLD
+        self.blendshape_jaw_open_threshold = BLENDSHAPE_JAW_OPEN_THRESHOLD
 
         # Head pose tracking
         self.pitch_neutral = 0.0  # overridden by calibration
@@ -42,17 +46,18 @@ class DrowsinessDetector:
 
     # --- PERCLOS & Blink ---
 
-    def update_ear(self, ear):
-        """Update PERCLOS and blink tracking with a new EAR reading.
+    def update_eye_closed(self, is_closed):
+        """Update PERCLOS and blink tracking from a per-frame closed/open boolean.
+
+        Lets callers choose the signal (EAR threshold, blendshape threshold, or
+        a learned classifier) without coupling this module to any one of them.
 
         Returns:
             perclos (float): Current PERCLOS value (0.0 - 1.0).
         """
         now = time.time()
-        is_closed = ear < self.ear_threshold
         self.perclos_window.append(1 if is_closed else 0)
 
-        # Track eye closure duration
         if is_closed:
             if self._eyes_closed_since is None:
                 self._eyes_closed_since = now
@@ -70,6 +75,18 @@ class DrowsinessDetector:
             return 0.0
         return sum(self.perclos_window) / len(self.perclos_window)
 
+    def update_ear(self, ear):
+        """EAR-based wrapper around update_eye_closed."""
+        return self.update_eye_closed(ear < self.ear_threshold)
+
+    def update_eye_closure_score(self, closure_score):
+        """Blendshape-based wrapper around update_eye_closed.
+
+        Args:
+            closure_score: max(eyeBlinkLeft, eyeBlinkRight) in [0, 1].
+        """
+        return self.update_eye_closed(closure_score > self.blendshape_eye_closed_threshold)
+
     def get_avg_blink_duration(self, last_n=10):
         """Average blink duration over the last N blinks."""
         recent = list(self.blink_durations)[-last_n:]
@@ -85,15 +102,13 @@ class DrowsinessDetector:
 
     # --- Yawn ---
 
-    def update_mar(self, mar):
-        """Update yawn tracking with a new MAR reading.
+    def update_mouth_open(self, is_open):
+        """Update yawn tracking from a per-frame mouth-open boolean.
 
         Returns:
             True if a yawn was just completed.
         """
         now = time.time()
-        is_open = mar > self.mar_threshold
-
         yawn_completed = False
 
         if is_open:
@@ -114,6 +129,18 @@ class DrowsinessDetector:
             self.yawn_timestamps.popleft()
 
         return yawn_completed
+
+    def update_mar(self, mar):
+        """MAR-based wrapper around update_mouth_open."""
+        return self.update_mouth_open(mar > self.mar_threshold)
+
+    def update_jaw_open_score(self, jaw_open_score):
+        """Blendshape-based wrapper around update_mouth_open.
+
+        Args:
+            jaw_open_score: jawOpen blendshape in [0, 1].
+        """
+        return self.update_mouth_open(jaw_open_score > self.blendshape_jaw_open_threshold)
 
     @property
     def yawn_count_5min(self):
@@ -161,3 +188,7 @@ class DrowsinessDetector:
         self.mar_threshold = thresholds["mar_yawn"]
         self.pitch_neutral = thresholds["pitch_neutral"]
         self.pitch_nod_threshold = -HEAD_NOD_PITCH_DROP
+        if "blendshape_eye_closed" in thresholds:
+            self.blendshape_eye_closed_threshold = thresholds["blendshape_eye_closed"]
+        if "blendshape_jaw_open" in thresholds:
+            self.blendshape_jaw_open_threshold = thresholds["blendshape_jaw_open"]

@@ -28,12 +28,18 @@ from detection.ear import compute_avg_ear
 from detection.mar import compute_mar
 from detection.head_pose import estimate_head_pose
 from detection.perclos import DrowsinessDetector
+from detection.blendshapes import eye_closure_score, jaw_open_score
 from scoring.state_machine import StateMachine, DrowsinessState
 from scoring.fusion import compute_drowsiness_score
 from alerts.alert_system import AlertSystem
 from calibration.calibrator import Calibrator
 from data_logging.data_logger import DataLogger
-from config import FACE_LOST_WARNING, FACE_LOST_CRITICAL
+from config import (
+    FACE_LOST_WARNING,
+    FACE_LOST_CRITICAL,
+    EYE_CLOSURE_SIGNAL,
+    YAWN_SIGNAL,
+)
 
 
 def parse_args():
@@ -66,24 +72,31 @@ STATE_COLORS = {
 }
 
 
-def draw_overlay(frame, state, perclos, ear, mar, pitch, yaw, score, fps):
+def draw_overlay(frame, state, perclos, ear, mar, eye_closure, jaw_open,
+                 pitch, yaw, score, fps):
     """Draw debug info on frame."""
     color = STATE_COLORS.get(state, (255, 255, 255))
+    active_marker = lambda is_active: ">" if is_active else " "
+    eye_active = EYE_CLOSURE_SIGNAL == "blendshape"
+    yawn_active = YAWN_SIGNAL == "blendshape"
 
-    cv2.putText(frame, f"State: {state.name}", (10, 30),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
-    cv2.putText(frame, f"PERCLOS: {perclos:.3f}", (10, 60),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
-    cv2.putText(frame, f"EAR: {ear:.3f}", (10, 85),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
-    cv2.putText(frame, f"MAR: {mar:.3f}", (10, 110),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
-    cv2.putText(frame, f"Pitch: {pitch:.1f}  Yaw: {yaw:.1f}", (10, 135),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
-    cv2.putText(frame, f"Score: {score:.3f}", (10, 160),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
-    cv2.putText(frame, f"FPS: {fps:.0f}", (10, 185),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+    lines = [
+        (f"State: {state.name}", 30, 0.8, color, 2),
+        (f"PERCLOS: {perclos:.3f}", 60, 0.6, (255, 255, 255), 1),
+        (f"{active_marker(not eye_active)}EAR:        {ear:.3f}", 85, 0.6,
+         (255, 255, 255), 1),
+        (f"{active_marker(eye_active)}eyeClosure: {eye_closure:.3f}", 110,
+         0.6, (255, 255, 255), 1),
+        (f"{active_marker(not yawn_active)}MAR:        {mar:.3f}", 135, 0.6,
+         (255, 255, 255), 1),
+        (f"{active_marker(yawn_active)}jawOpen:    {jaw_open:.3f}", 160, 0.6,
+         (255, 255, 255), 1),
+        (f"Pitch: {pitch:.1f}  Yaw: {yaw:.1f}", 185, 0.6, (255, 255, 255), 1),
+        (f"Score: {score:.3f}", 210, 0.6, (255, 255, 255), 1),
+        (f"FPS: {fps:.0f}", 235, 0.6, (255, 255, 255), 1),
+    ]
+    for text, y, scale, c, thick in lines:
+        cv2.putText(frame, text, (10, y), cv2.FONT_HERSHEY_SIMPLEX, scale, c, thick)
 
     # State indicator bar at top
     cv2.rectangle(frame, (0, 0), (frame.shape[1], 5), color, -1)
@@ -193,14 +206,28 @@ def main():
 
             face_lost_since = None
 
-            # Compute metrics
+            # Compute metrics — both EAR/MAR (geometric) and blendshape (learned)
+            # signals are computed every frame so the overlay can show them side
+            # by side. The active signal feeds the detector.
             left_eye, right_eye = landmarker.get_eye_landmarks(result, frame.shape)
             ear = compute_avg_ear(left_eye, right_eye)
-            perclos = detector.update_ear(ear)
 
             mouth = landmarker.get_mouth_landmarks(result, frame.shape)
             mar = compute_mar(mouth)
-            detector.update_mar(mar)
+
+            blendshapes = landmarker.get_blendshapes(result)
+            eye_closure = eye_closure_score(blendshapes)
+            jaw_open = jaw_open_score(blendshapes)
+
+            if EYE_CLOSURE_SIGNAL == "blendshape" and blendshapes is not None:
+                perclos = detector.update_eye_closure_score(eye_closure)
+            else:
+                perclos = detector.update_ear(ear)
+
+            if YAWN_SIGNAL == "blendshape" and blendshapes is not None:
+                detector.update_jaw_open_score(jaw_open)
+            else:
+                detector.update_mar(mar)
 
             head_points = landmarker.get_head_pose_landmarks(result, frame.shape)
             pitch, yaw, roll = estimate_head_pose(head_points, frame.shape)
@@ -242,13 +269,16 @@ def main():
 
             # Display
             if not args.no_display:
-                frame = draw_overlay(frame, state, perclos, ear, mar, pitch, yaw, score, fps)
+                frame = draw_overlay(frame, state, perclos, ear, mar,
+                                     eye_closure, jaw_open, pitch, yaw,
+                                     score, fps)
                 cv2.imshow("Drive Safe", frame)
                 if cv2.waitKey(1) & 0xFF == ord("q"):
                     break
             elif frame_count % 15 == 0:
-                print(f"[{state.name:<8}] EAR={ear:.3f} PERCLOS={perclos:.3f} "
-                      f"MAR={mar:.3f} pitch={pitch:+.1f} score={score:.2f} fps={fps:.1f}")
+                print(f"[{state.name:<8}] EAR={ear:.3f} eyeClose={eye_closure:.3f} "
+                      f"PERCLOS={perclos:.3f} MAR={mar:.3f} jawOpen={jaw_open:.3f} "
+                      f"pitch={pitch:+.1f} score={score:.2f} fps={fps:.1f}")
 
     finally:
         print("\n[Shutdown] Cleaning up...")
